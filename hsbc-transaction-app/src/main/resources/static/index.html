@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>内存交易管理系统</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        input, select, button { margin: 5px; padding: 5px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        td[contenteditable] { background: #f8f8f8; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h1>🧾 内存交易管理系统</h1>
+
+<h2>➕ 添加交易</h2>
+<form id="addTransactionForm">
+    描述: <input type="text" id="description" required>
+    金额: <input type="number" id="amount" required>
+    类型:
+    <select id="type">
+        <option value="INCOME">收入</option>
+        <option value="EXPENSE">支出</option>
+        <option value="TRANSFER">转账</option>
+    </select>
+    <button type="submit">添加</button>
+</form>
+
+<h2>🔍 查询交易</h2>
+页码: <input type="number" id="page" value="0" min="0">
+每页数量: <input type="number" id="size" value="5" min="1">
+类型筛选:
+<select id="filterType">
+    <option value="">全部</option>
+    <option value="INCOME">收入</option>
+    <option value="EXPENSE">支出</option>
+    <option value="TRANSFER">转账</option>
+</select>
+<button onclick="loadTransactions()">查询</button>
+
+<table id="transactionTable">
+    <thead>
+    <tr>
+        <th>ID</th><th>描述</th><th>金额</th><th>类型</th><th>操作</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h2>📊 收入 / 支出比例图</h2>
+<canvas id="summaryChart" width="400" height="200"></canvas>
+
+<script>
+    const apiBase = '/transactions';
+    let chart; // Chart.js 图表对象
+
+    document.getElementById('addTransactionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            description: document.getElementById('description').value,
+            amount: parseFloat(document.getElementById('amount').value),
+            type: document.getElementById('type').value
+        };
+        const res = await fetch(apiBase, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            alert('添加成功');
+            document.getElementById('addTransactionForm').reset();
+            loadTransactions();
+            loadSummaryChart();
+        } else {
+            const err = await res.json();
+            alert('添加失败: ' + (err.message || '未知错误'));
+        }
+    });
+
+    async function loadTransactions() {
+        const page = document.getElementById('page').value || 0;
+        const size = document.getElementById('size').value || 5;
+        const type = document.getElementById('filterType').value;
+        let url = `${apiBase}?page=${page}&size=${size}`;
+        if (type) url += `&type=${type}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const tbody = document.querySelector('#transactionTable tbody');
+        tbody.innerHTML = '';
+        data.forEach(tx => {
+            const row = `<tr>
+          <td>${tx.id}</td>
+          <td contenteditable="true" data-field="description">${tx.description}</td>
+          <td contenteditable="true" data-field="amount">${tx.amount}</td>
+          <td>
+            <select data-field="type">
+              <option value="INCOME" ${tx.type === 'INCOME' ? 'selected' : ''}>收入</option>
+              <option value="EXPENSE" ${tx.type === 'EXPENSE' ? 'selected' : ''}>支出</option>
+              <option value="TRANSFER" ${tx.type === 'TRANSFER' ? 'selected' : ''}>转账</option>
+            </select>
+          </td>
+          <td>
+            <button onclick="updateTransaction(${tx.id}, this)">保存</button>
+            <button onclick="deleteTransaction(${tx.id})">删除</button>
+          </td>
+        </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    async function updateTransaction(id, btn) {
+        const row = btn.closest('tr');
+        const description = row.querySelector('[data-field="description"]').innerText.trim();
+        const amount = parseFloat(row.querySelector('[data-field="amount"]').innerText.trim());
+        const type = row.querySelector('select[data-field="type"]').value;
+
+        const res = await fetch(`${apiBase}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description, amount, type })
+        });
+
+        if (res.ok) {
+            alert('更新成功');
+            loadTransactions();
+            loadSummaryChart();
+        } else {
+            const err = await res.json();
+            alert('更新失败: ' + (err.message || '未知错误'));
+        }
+    }
+
+    async function deleteTransaction(id) {
+        if (!confirm('确认删除该交易记录？')) return;
+        const res = await fetch(`${apiBase}/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            alert('删除成功');
+            loadTransactions();
+            loadSummaryChart();
+        } else {
+            alert('删除失败');
+        }
+    }
+
+    async function loadSummaryChart() {
+        const res = await fetch(apiBase); // 获取所有交易
+        const data = await res.json();
+        const income = data.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
+        const expense = data.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
+
+        const ctx = document.getElementById('summaryChart').getContext('2d');
+        if (chart) chart.destroy(); // 更新图表
+        chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['收入', '支出'],
+                datasets: [{
+                    data: [income, expense],
+                    backgroundColor: ['#4CAF50', '#F44336']
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
+    }
+
+    // 页面加载初始化
+    loadTransactions();
+    loadSummaryChart();
+</script>
+
+</body>
+</html>
