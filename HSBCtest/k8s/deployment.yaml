@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hsbc-transaction-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hsbc-transaction-app
+  template:
+    metadata:
+      labels:
+        app: hsbc-transaction-app
+    spec:
+      containers:
+        - name: hsbc-transaction-container
+          image: your-registry/hsbc-transaction-app:latest
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
