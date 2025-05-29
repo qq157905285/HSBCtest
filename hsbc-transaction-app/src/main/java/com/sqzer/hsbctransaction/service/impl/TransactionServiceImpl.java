@@ -25,6 +25,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @CacheEvict(value = "transactions", allEntries = true)
     public Optional<Transaction> update(String id, Transaction updated) {
         if (transactions.containsKey(id)) {
             updated.setId(id);
@@ -35,6 +36,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @CacheEvict(value = "transactions", allEntries = true)
     public boolean delete(String id) {
         return transactions.remove(id) != null;
     }

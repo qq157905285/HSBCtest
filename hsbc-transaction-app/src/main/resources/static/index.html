@@ -92,29 +92,39 @@
 
         const tbody = document.querySelector('#transactionTable tbody');
         tbody.innerHTML = '';
+
         data.forEach(tx => {
-            const row = `<tr>
-          <td>${tx.id}</td>
-          <td contenteditable="true" data-field="description">${tx.description}</td>
-          <td contenteditable="true" data-field="amount">${tx.amount}</td>
-          <td>
-            <select data-field="type">
-              <option value="INCOME" ${tx.type === 'INCOME' ? 'selected' : ''}>收入</option>
-              <option value="EXPENSE" ${tx.type === 'EXPENSE' ? 'selected' : ''}>支出</option>
-              <option value="TRANSFER" ${tx.type === 'TRANSFER' ? 'selected' : ''}>转账</option>
-            </select>
-          </td>
-          <td>
-            <button onclick="updateTransaction(${tx.id}, this)">保存</button>
-            <button onclick="deleteTransaction(${tx.id})">删除</button>
-          </td>
-        </tr>`;
-            tbody.insertAdjacentHTML('beforeend', row);
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+            <td>${tx.id}</td>
+            <td contenteditable="true" data-field="description">${tx.description}</td>
+            <td contenteditable="true" data-field="amount">${tx.amount}</td>
+            <td>
+                <select data-field="type">
+                    <option value="INCOME" ${tx.type === 'INCOME' ? 'selected' : ''}>收入</option>
+                    <option value="EXPENSE" ${tx.type === 'EXPENSE' ? 'selected' : ''}>支出</option>
+                    <option value="TRANSFER" ${tx.type === 'TRANSFER' ? 'selected' : ''}>转账</option>
+                </select>
+            </td>
+            <td>
+                <button class="save-btn">保存</button>
+                <button class="delete-btn">删除</button>
+            </td>
+        `;
+
+            // 保存按钮事件绑定
+            tr.querySelector('.save-btn').addEventListener('click', () => updateTransaction(tx.id, tr));
+
+            // 删除按钮事件绑定
+            tr.querySelector('.delete-btn').addEventListener('click', () => deleteTransaction(tx.id));
+
+            tbody.appendChild(tr);
         });
     }
 
-    async function updateTransaction(id, btn) {
-        const row = btn.closest('tr');
+
+    async function updateTransaction(id, row) {
         const description = row.querySelector('[data-field="description"]').innerText.trim();
         const amount = parseFloat(row.querySelector('[data-field="amount"]').innerText.trim());
         const type = row.querySelector('select[data-field="type"]').value;
