@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>内存交易管理系统</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
@@ -18,8 +18,8 @@
 
 <h2>➕ 添加交易</h2>
 <form id="addTransactionForm">
-    描述: <input type="text" id="description" required>
-    金额: <input type="number" id="amount" required>
+    描述: <input type="text" id="description" required />
+    金额: <input type="number" id="amount" required />
     类型:
     <select id="type">
         <option value="INCOME">收入</option>
@@ -30,8 +30,8 @@
 </form>
 
 <h2>🔍 查询交易</h2>
-页码: <input type="number" id="page" value="0" min="0">
-每页数量: <input type="number" id="size" value="5" min="1">
+页码: <input type="number" id="page" value="0" min="0" />
+每页数量: <input type="number" id="size" value="5" min="1" />
 类型筛选:
 <select id="filterType">
     <option value="">全部</option>
@@ -39,7 +39,7 @@
     <option value="EXPENSE">支出</option>
     <option value="TRANSFER">转账</option>
 </select>
-<button onclick="loadTransactions()">查询</button>
+<button type="button" onclick="loadTransactions()">查询</button>
 
 <table id="transactionTable">
     <thead>
@@ -55,7 +55,7 @@
 
 <script>
     const apiBase = '/transactions';
-    let chart; // Chart.js 图表对象
+    let chart;
 
     document.getElementById('addTransactionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -81,14 +81,19 @@
     });
 
     async function loadTransactions() {
-        const page = document.getElementById('page').value || 0;
-        const size = document.getElementById('size').value || 5;
+        const page = parseInt(document.getElementById('page').value) || 0;
+        const size = parseInt(document.getElementById('size').value) || 5;
         const type = document.getElementById('filterType').value;
         let url = `${apiBase}?page=${page}&size=${size}`;
         if (type) url += `&type=${type}`;
 
         const res = await fetch(url);
-        const data = await res.json();
+        if (!res.ok) {
+            alert('加载交易失败');
+            return;
+        }
+        const result = await res.json();
+        const data = result.data || [];
 
         const tbody = document.querySelector('#transactionTable tbody');
         tbody.innerHTML = '';
@@ -97,32 +102,28 @@
             const tr = document.createElement('tr');
 
             tr.innerHTML = `
-            <td>${tx.id}</td>
-            <td contenteditable="true" data-field="description">${tx.description}</td>
-            <td contenteditable="true" data-field="amount">${tx.amount}</td>
-            <td>
-                <select data-field="type">
-                    <option value="INCOME" ${tx.type === 'INCOME' ? 'selected' : ''}>收入</option>
-                    <option value="EXPENSE" ${tx.type === 'EXPENSE' ? 'selected' : ''}>支出</option>
-                    <option value="TRANSFER" ${tx.type === 'TRANSFER' ? 'selected' : ''}>转账</option>
-                </select>
-            </td>
-            <td>
-                <button class="save-btn">保存</button>
-                <button class="delete-btn">删除</button>
-            </td>
-        `;
+                <td>${tx.id}</td>
+                <td contenteditable="true" data-field="description">${tx.description}</td>
+                <td contenteditable="true" data-field="amount">${tx.amount}</td>
+                <td>
+                    <select data-field="type">
+                        <option value="INCOME" ${tx.type === 'INCOME' ? 'selected' : ''}>收入</option>
+                        <option value="EXPENSE" ${tx.type === 'EXPENSE' ? 'selected' : ''}>支出</option>
+                        <option value="TRANSFER" ${tx.type === 'TRANSFER' ? 'selected' : ''}>转账</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="save-btn">保存</button>
+                    <button class="delete-btn">删除</button>
+                </td>
+            `;
 
-            // 保存按钮事件绑定
             tr.querySelector('.save-btn').addEventListener('click', () => updateTransaction(tx.id, tr));
-
-            // 删除按钮事件绑定
             tr.querySelector('.delete-btn').addEventListener('click', () => deleteTransaction(tx.id));
 
             tbody.appendChild(tr);
         });
     }
-
 
     async function updateTransaction(id, row) {
         const description = row.querySelector('[data-field="description"]').innerText.trim();
@@ -158,13 +159,19 @@
     }
 
     async function loadSummaryChart() {
-        const res = await fetch(apiBase); // 获取所有交易
-        const data = await res.json();
+        const res = await fetch(apiBase);
+        if (!res.ok) {
+            alert('加载统计数据失败');
+            return;
+        }
+        const result = await res.json();
+        const data = result.data || [];
+
         const income = data.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
         const expense = data.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
 
         const ctx = document.getElementById('summaryChart').getContext('2d');
-        if (chart) chart.destroy(); // 更新图表
+        if (chart) chart.destroy();
         chart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -174,13 +181,11 @@
                     backgroundColor: ['#4CAF50', '#F44336']
                 }]
             },
-            options: {
-                responsive: true
-            }
+            options: { responsive: true }
         });
     }
 
-    // 页面加载初始化
+    // 初始化加载
     loadTransactions();
     loadSummaryChart();
 </script>

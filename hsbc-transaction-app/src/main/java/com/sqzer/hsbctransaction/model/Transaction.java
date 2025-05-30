@@ -1,4 +1,5 @@
 package com.sqzer.hsbctransaction.model;
+import com.sqzer.hsbctransaction.enums.TransactionType;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -22,9 +23,7 @@ public class Transaction {
     @NotNull(message = "Type is required")
     private TransactionType type; // 新增类型字段
 
-    public enum TransactionType {
-        INCOME, EXPENSE, TRANSFER
-    }
+
 
     public Transaction() {
         this.id = UUID.randomUUID().toString();
@@ -36,6 +35,7 @@ public class Transaction {
         this.description = description;
         this.amount = amount;
         this.timestamp = LocalDateTime.now();
+        this.type = transactionType;
     }
 
     public String getId() {

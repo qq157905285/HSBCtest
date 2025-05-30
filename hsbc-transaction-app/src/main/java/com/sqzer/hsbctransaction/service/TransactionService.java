@@ -1,11 +1,12 @@
 package com.sqzer.hsbctransaction.service;
 
+import com.sqzer.hsbctransaction.enums.TransactionType;
 import com.sqzer.hsbctransaction.model.Transaction;
 import java.util.List;
 import java.util.Optional;
 
 public interface TransactionService {
-    public List<Transaction> findPaginated(int page, int size, Transaction.TransactionType type);
+    public List<Transaction> findPaginated(int page, int size, TransactionType type);
 
     public Transaction create(Transaction tx);
 

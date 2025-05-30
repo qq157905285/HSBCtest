@@ -1,11 +1,15 @@
 package com.sqzer.hsbctransaction.controller;
+
+import com.sqzer.hsbctransaction.enums.TransactionType;
+import com.sqzer.hsbctransaction.exception.ResourceNotFoundException;
+import com.sqzer.hsbctransaction.model.ApiResponse;
 import com.sqzer.hsbctransaction.model.Transaction;
 import com.sqzer.hsbctransaction.service.TransactionService;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
@@ -17,30 +21,33 @@ public class TransactionController {
     }
 
     @GetMapping
-    public List<Transaction> getPaginated(
+    public ApiResponse<List<Transaction>> getPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Transaction.TransactionType type
+            @RequestParam(required = false) TransactionType type
     ) {
-        return service.findPaginated(page, size, type);
+        if (page < 0) page = 0;
+        if (size <= 0) size = 10;
+        if (size > 100) size = 100;
+        return ApiResponse.success(service.findPaginated(page, size, type));
     }
 
     @PostMapping
-    public ResponseEntity<Transaction> create(@Valid @RequestBody Transaction tx) {
-        return ResponseEntity.ok(service.create(tx));
+    public ApiResponse<Transaction> create(@Valid @RequestBody Transaction tx) {
+        return ApiResponse.success(service.create(tx));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable String id, @RequestBody Transaction tx) {
-        return service.update(id, tx)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ApiResponse<Transaction> update(@PathVariable String id, @Valid @RequestBody Transaction tx) {
+        return ApiResponse.success(service.update(id, tx)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found")));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable String id) {
-        return service.delete(id)
-                ? ResponseEntity.ok().build()
-                : ResponseEntity.notFound().build();
+    public ApiResponse<Void> delete(@PathVariable String id) {
+        if (!service.delete(id)) {
+            throw new ResourceNotFoundException("Transaction not found");
+        }
+        return ApiResponse.success();
     }
 }

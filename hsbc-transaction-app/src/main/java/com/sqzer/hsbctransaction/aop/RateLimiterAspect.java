@@ -1,10 +1,10 @@
 package com.sqzer.hsbctransaction.aop;
 
+import com.sqzer.hsbctransaction.exception.CustomRateLimitException;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -24,8 +24,9 @@ public class RateLimiterAspect {
         if (limiter.acquirePermission()) {
             return joinPoint.proceed();
         } else {
+            System.out.println("限流，抛出异常");
             // 正确抛出内置的限流异常
-            return ResponseEntity.status(429).body("接口访问太频繁，请稍后再试");
+            throw new CustomRateLimitException("接口访问太频繁，请稍后再试");
         }
     }
 }

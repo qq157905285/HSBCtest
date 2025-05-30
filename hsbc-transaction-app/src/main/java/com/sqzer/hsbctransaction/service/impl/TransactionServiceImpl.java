@@ -1,4 +1,5 @@
 package com.sqzer.hsbctransaction.service.impl;
+import com.sqzer.hsbctransaction.enums.TransactionType;
 import com.sqzer.hsbctransaction.model.Transaction;
 import com.sqzer.hsbctransaction.service.TransactionService;
 import org.springframework.stereotype.Service;
@@ -43,15 +44,20 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Cacheable(value = "transactions", key = "#page + '-' + #size + '-' + #type")
-    public List<Transaction> findPaginated(int page, int size, Transaction.TransactionType type) {
+    public List<Transaction> findPaginated(int page, int size, TransactionType type) {
+        if (page < 1) page = 1; // 最小页码1
+        if (size < 1) size = 10; // 默认页大小10
+
         List<Transaction> filtered = transactions.values().stream()
                 .filter(tx -> type == null || tx.getType() == type)
                 .sorted(Comparator.comparing(Transaction::getTimestamp).reversed())
                 .toList();
 
-        int fromIndex = page * size;
-        int toIndex = Math.min(fromIndex + size, filtered.size());
+        int fromIndex = (page - 1) * size;
         if (fromIndex >= filtered.size()) return Collections.emptyList();
+
+        int toIndex = Math.min(fromIndex + size, filtered.size());
         return filtered.subList(fromIndex, toIndex);
     }
+
 }
