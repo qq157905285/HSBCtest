@@ -2,9 +2,9 @@ package com.sqzer.hsbctransaction.aop;
 
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
-import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -25,7 +25,7 @@ public class RateLimiterAspect {
             return joinPoint.proceed();
         } else {
             // 正确抛出内置的限流异常
-            throw RequestNotPermitted.createRequestNotPermitted(limiter);
+            return ResponseEntity.status(429).body("接口访问太频繁，请稍后再试");
         }
     }
 }
