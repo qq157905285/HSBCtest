@@ -24,7 +24,6 @@ public class RateLimiterAspect {
         if (limiter.acquirePermission()) {
             return joinPoint.proceed();
         } else {
-            System.out.println("限流，抛出异常");
             // 正确抛出内置的限流异常
             throw new CustomRateLimitException("接口访问太频繁，请稍后再试");
         }
